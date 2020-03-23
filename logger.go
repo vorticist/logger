@@ -13,7 +13,7 @@ func init() {
 	log.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 }
 
-func SetOutputfile(writer io.Writer) {
+func SetOutputFile(writer io.Writer) {
 	log.SetOutput(writer)
 }
 

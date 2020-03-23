@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"io"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -9,6 +11,10 @@ var log *logrus.Logger
 func init() {
 	log = logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+}
+
+func SetOutputfile(writer io.Writer) {
+	log.SetOutput(writer)
 }
 
 func Trace(args ...interface{}) {

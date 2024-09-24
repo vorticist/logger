@@ -97,7 +97,9 @@ func logf(format string, logf func(format string, args ...interface{}), args []i
 			signature := getFunctionSignature(arg)
 			jsonArgs = append(jsonArgs, signature)
 		} else {
-			jsonArg, err := json.Marshal(arg)
+			value := dereferencePointer(arg)
+
+			jsonArg, err := json.Marshal(value)
 			if err != nil {
 				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
 			} else {
@@ -126,4 +128,17 @@ func getFunctionSignature(fn interface{}) string {
 	}
 
 	return fmt.Sprintf("func(%s) (%s)", strings.Join(params, ", "), strings.Join(returns, ", "))
+}
+
+func dereferencePointer(arg interface{}) interface{} {
+	val := reflect.ValueOf(arg)
+
+	if val.Kind() == reflect.Ptr {
+		if !val.IsNil() {
+			return val.Elem().Interface()
+		}
+		return "nil pointer"
+	}
+
+	return arg
 }

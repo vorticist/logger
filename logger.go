@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -26,7 +28,7 @@ func Trace(args ...interface{}) {
 }
 
 func Tracef(format string, args ...interface{}) {
-	log.Tracef(format, args...)
+	logf(format, log.Tracef, args)
 }
 
 func Debug(args ...interface{}) {
@@ -34,7 +36,7 @@ func Debug(args ...interface{}) {
 }
 
 func Debugf(format string, args ...interface{}) {
-	log.Debugf(format, args...)
+	logf(format, log.Debugf, args)
 }
 
 func Info(args ...interface{}) {
@@ -42,7 +44,7 @@ func Info(args ...interface{}) {
 }
 
 func Infof(format string, args ...interface{}) {
-	log.Infof(format, args...)
+	logf(format, log.Infof, args)
 }
 
 func Print(args ...interface{}) {
@@ -50,7 +52,7 @@ func Print(args ...interface{}) {
 }
 
 func Printf(format string, args ...interface{}) {
-	log.Printf(format, args...)
+	logf(format, log.Printf, args)
 }
 
 func Warn(args ...interface{}) {
@@ -58,7 +60,7 @@ func Warn(args ...interface{}) {
 }
 
 func Warnf(format string, args ...interface{}) {
-	log.Warnf(format, args...)
+	logf(format, log.Warnf, args)
 }
 
 func Error(args ...interface{}) {
@@ -66,7 +68,7 @@ func Error(args ...interface{}) {
 }
 
 func Errorf(format string, args ...interface{}) {
-	log.Errorf(format, args...)
+	logf(format, log.Errorf, args)
 }
 
 func Fatal(args ...interface{}) {
@@ -74,7 +76,7 @@ func Fatal(args ...interface{}) {
 }
 
 func Fatalf(format string, args ...interface{}) {
-	log.Fatalf(format, args...)
+	logf(format, log.Fatalf, args)
 }
 
 func Panic(args ...interface{}) {
@@ -82,5 +84,21 @@ func Panic(args ...interface{}) {
 }
 
 func Panicf(format string, args ...interface{}) {
-	log.Panicf(format, args...)
+	logf(format, log.Panicf, args)
+}
+
+func logf(format string, logf func(format string, args ...interface{}), args []interface{}) {
+	var jsonArgs []interface{}
+
+	// Marshal each argument to JSON
+	for _, arg := range args {
+		jsonArg, err := json.Marshal(arg)
+		if err != nil {
+			jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
+		} else {
+			jsonArgs = append(jsonArgs, string(jsonArg))
+		}
+	}
+
+	logf(format, jsonArgs)
 }

@@ -1,4 +1,4 @@
-module gitlab.com/vorticist/logger
+module github.com/vorticist/logger
 
 go 1.12
 

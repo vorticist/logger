@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -90,15 +92,38 @@ func Panicf(format string, args ...interface{}) {
 func logf(format string, logf func(format string, args ...interface{}), args []interface{}) {
 	var jsonArgs []interface{}
 
-	// Marshal each argument to JSON
 	for _, arg := range args {
-		jsonArg, err := json.Marshal(arg)
-		if err != nil {
-			jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
+		if reflect.TypeOf(arg).Kind() == reflect.Func {
+			signature := getFunctionSignature(arg)
+			jsonArgs = append(jsonArgs, signature)
 		} else {
-			jsonArgs = append(jsonArgs, string(jsonArg))
+			jsonArg, err := json.Marshal(arg)
+			if err != nil {
+				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
+			} else {
+				jsonArgs = append(jsonArgs, string(jsonArg))
+			}
 		}
 	}
 
 	logf(format, jsonArgs)
+}
+
+func getFunctionSignature(fn interface{}) string {
+	fnType := reflect.TypeOf(fn)
+	if fnType.Kind() != reflect.Func {
+		return "not a function"
+	}
+
+	var params []string
+	for i := 0; i < fnType.NumIn(); i++ {
+		params = append(params, fnType.In(i).String())
+	}
+
+	var returns []string
+	for i := 0; i < fnType.NumOut(); i++ {
+		returns = append(returns, fnType.Out(i).String())
+	}
+
+	return fmt.Sprintf("func(%s) (%s)", strings.Join(params, ", "), strings.Join(returns, ", "))
 }

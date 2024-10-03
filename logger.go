@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -93,6 +94,17 @@ func logf(format string, logf func(format string, args ...interface{}), args []i
 	var jsonArgs []interface{}
 
 	for _, arg := range args {
+		if req, ok := arg.(*http.Request); ok {
+			reqData := extractRequestData(req)
+			jsonArg, err := json.Marshal(reqData)
+			if err != nil {
+				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Request: %v", err))
+			} else {
+				jsonArgs = append(jsonArgs, string(jsonArg))
+			}
+			continue
+		}
+
 		if reflect.TypeOf(arg).Kind() == reflect.Func {
 			signature := getFunctionSignature(arg)
 			jsonArgs = append(jsonArgs, signature)
@@ -108,9 +120,8 @@ func logf(format string, logf func(format string, args ...interface{}), args []i
 		}
 	}
 
-	logf(format, jsonArgs)
+	logf(format, jsonArgs...)
 }
-
 func getFunctionSignature(fn interface{}) string {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
@@ -141,4 +152,27 @@ func dereferencePointer(arg interface{}) interface{} {
 	}
 
 	return arg
+}
+
+func extractRequestData(req *http.Request) map[string]interface{} {
+	// Read the body (if it's not already read)
+	var bodyData string
+	if req.Body != nil {
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err == nil {
+			bodyData = string(bodyBytes)
+		} else {
+			bodyData = "error reading body"
+		}
+		// Restore the io.ReadCloser by re-creating the body
+		req.Body = io.NopCloser(strings.NewReader(bodyData))
+	}
+
+	// Return a map with the relevant request data
+	return map[string]interface{}{
+		"method":  req.Method,
+		"url":     req.URL.String(),
+		"headers": req.Header,
+		"body":    bodyData,
+	}
 }

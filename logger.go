@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -105,6 +106,17 @@ func logf(format string, logf func(format string, args ...interface{}), args []i
 			continue
 		}
 
+		if resp, ok := arg.(*http.Response); ok {
+			reqData := extractResponseData(resp)
+			jsonArg, err := json.Marshal(reqData)
+			if err != nil {
+				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Request: %v", err))
+			} else {
+				jsonArgs = append(jsonArgs, string(jsonArg))
+			}
+			continue
+		}
+
 		if reflect.TypeOf(arg).Kind() == reflect.Func {
 			signature := getFunctionSignature(arg)
 			jsonArgs = append(jsonArgs, signature)
@@ -173,6 +185,28 @@ func extractRequestData(req *http.Request) map[string]interface{} {
 		"method":  req.Method,
 		"url":     req.URL.String(),
 		"headers": req.Header,
+		"body":    bodyData,
+	}
+}
+
+func extractResponseData(resp *http.Response) map[string]interface{} {
+	// Read the body (if it's not already read)
+	var bodyData string
+	if resp.Body != nil {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err == nil {
+			bodyData = string(bodyBytes)
+		} else {
+			bodyData = "error reading body"
+		}
+		// Restore the io.ReadCloser by re-creating the body
+		resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
+
+	// Return a map with the relevant response data
+	return map[string]interface{}{
+		"status":  resp.StatusCode,
+		"headers": resp.Header,
 		"body":    bodyData,
 	}
 }

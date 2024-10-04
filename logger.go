@@ -110,7 +110,7 @@ func logf(format string, logf func(format string, args ...interface{}), args []i
 			reqData := extractResponseData(resp)
 			jsonArg, err := json.Marshal(reqData)
 			if err != nil {
-				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Request: %v", err))
+				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Response: %v", err))
 			} else {
 				jsonArgs = append(jsonArgs, string(jsonArg))
 			}

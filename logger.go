@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 
@@ -94,42 +95,47 @@ func Panicf(format string, args ...interface{}) {
 func logf(format string, logf func(format string, args ...interface{}), args []interface{}) {
 	var jsonArgs []interface{}
 
-	for _, arg := range args {
-		if req, ok := arg.(*http.Request); ok {
-			reqData := extractRequestData(req)
-			jsonArg, err := json.Marshal(reqData)
-			if err != nil {
-				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Request: %v", err))
-			} else {
-				jsonArgs = append(jsonArgs, string(jsonArg))
+	value := os.Getenv("JSON_LOGS")
+	if value != "" {
+		for _, arg := range args {
+			if req, ok := arg.(*http.Request); ok {
+				reqData := extractRequestData(req)
+				jsonArg, err := json.Marshal(reqData)
+				if err != nil {
+					jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Request: %v", err))
+				} else {
+					jsonArgs = append(jsonArgs, string(jsonArg))
+				}
+				continue
 			}
-			continue
-		}
 
-		if resp, ok := arg.(*http.Response); ok {
-			reqData := extractResponseData(resp)
-			jsonArg, err := json.Marshal(reqData)
-			if err != nil {
-				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Response: %v", err))
-			} else {
-				jsonArgs = append(jsonArgs, string(jsonArg))
+			if resp, ok := arg.(*http.Response); ok {
+				reqData := extractResponseData(resp)
+				jsonArg, err := json.Marshal(reqData)
+				if err != nil {
+					jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling http.Response: %v", err))
+				} else {
+					jsonArgs = append(jsonArgs, string(jsonArg))
+				}
+				continue
 			}
-			continue
-		}
 
-		if reflect.TypeOf(arg).Kind() == reflect.Func {
-			signature := getFunctionSignature(arg)
-			jsonArgs = append(jsonArgs, signature)
-		} else {
-			value := dereferencePointer(arg)
-
-			jsonArg, err := json.Marshal(value)
-			if err != nil {
-				jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
+			if reflect.TypeOf(arg).Kind() == reflect.Func {
+				signature := getFunctionSignature(arg)
+				jsonArgs = append(jsonArgs, signature)
 			} else {
-				jsonArgs = append(jsonArgs, string(jsonArg))
+				value := dereferencePointer(arg)
+
+				jsonArg, err := json.Marshal(value)
+				if err != nil {
+					jsonArgs = append(jsonArgs, fmt.Sprintf("error marshaling arg: %v", err))
+				} else {
+					jsonArgs = append(jsonArgs, string(jsonArg))
+				}
 			}
 		}
+	} else {
+		jsonArgs = append(jsonArgs, args...)
 	}
 
 	logf(format, jsonArgs...)
